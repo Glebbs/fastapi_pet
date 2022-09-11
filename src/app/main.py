@@ -1,53 +1,18 @@
 from typing import Union
 from enum import Enum
+
+import uvicorn as uvicorn
 from fastapi import FastAPI, Path
 from pydantic import BaseModel
 from fastapi import APIRouter
 from datetime import datetime
-
-router = APIRouter()
-
-
-class SystemItem(BaseModel):
-    id: str
-    url: str | None = None
-    date: datetime
-    type: Enum
-    size: int
-    children: list | None = None
+from handlers.items import router as items_router
 
 
-class SystemItemImport(BaseModel):
-    id: str
-    url: str | None = None
-    parentId: str
-    type: Enum
-    size: int
+def get_app():
+    app = FastAPI(docs_url='/swagger')
+    app.include_router(items_router)
+    return app
 
-
-class SystemItemImportRequest(BaseModel):
-    items: list[SystemItem]
-    updateDate: datetime
-
-
-class SystemItemHistoryUnit(BaseModel):
-    id: str
-    url: str | None = None
-    parentId: str
-    type: Enum
-    size: int
-    date: datetime
-
-
-class SystemItemHistoryResponse(BaseModel):
-    items: list[SystemItemHistoryUnit]
-
-
-class Error(BaseModel):
-    code: int
-    message: str
-
-
-@router.post('/imports')
-async def import_files():
-    pass
+if __name__ == '__main__':
+    uvicorn.run(get_app(), host='0.0.0.0', port=80)
