@@ -1,17 +1,13 @@
 from enum import Enum
-from pydantic import BaseModel, ValidationError, validator, root_validator
 
+from fastapi import HTTPException
+from pydantic import BaseModel, ValidationError, validator, root_validator
 import datetime
 
 
 class SystemItemType(str, Enum):
     FILE = "FILE"
     FOLDER = "FOLDER"
-
-
-def size_folder_rel_check(type: SystemItemType, size: int):
-    if not ((type.value == "FILE" and size > 0) or (type.value == "FOLDER" and size == 0)):
-        raise ValueError('Size and type does not match')
 
 
 class SystemItem(BaseModel):
@@ -23,15 +19,6 @@ class SystemItem(BaseModel):
     size: int | None = None
     children: list = []
 
-    @root_validator()
-    def check_passwords_match(cls, v):
-        if v.get('type').value == "FOLDER" and v.get('url') is not None:
-            raise ValueError('Url should be zero while importing folder')
-        if not ((v.get('type').value == "FILE" and 0 < v.get('size') < 256) or (
-                v.get('type').value == "FOLDER" and v.get('size') == 0)):
-            raise ValueError('Size and type does not match')
-        return v
-
     class Config:
         orm_mode = True
 
@@ -42,6 +29,15 @@ class SystemItemImport(BaseModel):
     parentId: str | None = None
     type: SystemItemType
     size: int | None = None
+
+    @root_validator
+    def check_passwords_match(cls, v):
+        if v.get('type').value == "FOLDER" and v.get('url') is not None:
+            raise HTTPException(400)
+        if not ((v.get('type').value == "FILE" and 0 < v.get('size') and len(v.get('url') < 256)) or (
+                v.get('type').value == "FOLDER" and v.get('size') == 0)):
+            raise HTTPException(400)
+        return v
 
 
 class SystemItemImportRequest(BaseModel):

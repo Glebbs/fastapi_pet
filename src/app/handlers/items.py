@@ -21,19 +21,20 @@ async def import_files(model: SystemItemImportRequest,
 
         query = select(Items)#.where(Items.type is SystemItemType.FILE)
         res = (await session.execute(query)).scalars().all()
-
         print(res)
+        for item in model.items:
+            print(item.id, item.type)
+            if item.type.value != 'FILE':
+                continue
+            s = item.size
+            while item.parentId:
+                t = (await session.execute(select(Items).where(Items.id == item.parentId))).scalars().first()
+                await session.execute(update(Items).where(Items.id == item.parentId).values(
+                    size=t.size + s if t.size else s))
+                item = t
+        await session.commit()
 
-
-    #     for item in res:
-    #         print(item.id)
-    #         while item.parentId:
-    #             t = (await session.execute(select(Items).where(Items.id == item.parentId))).scalars().first()
-    #             await session.execute(update(Items).where(Items.id == item.parentId).values(size=t.size + item.size))
-    #             item = t
-    #     await session.commit()
-
-    return res
+    return
 
 
 @router.delete('/delete/{id}')
@@ -165,6 +166,20 @@ async def updates(date: datetime, session: AsyncSession = Depends(get_session)):
 #       "url": "/file/url3",
 #       "parentId": "5",
 #       "size": 234,
+#       "type": "FILE"
+#     }
+#   ],
+#   "updateDate": "2022-05-28T21:12:01.000Z"
+# }
+
+
+# {
+#   "items": [
+#     {
+#       "id": "11",
+#       "url": "/file/url1",
+#       "parentId": "3",
+#       "size": 1,
 #       "type": "FILE"
 #     }
 #   ],
