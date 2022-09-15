@@ -4,16 +4,27 @@ from enum import Enum
 import uvicorn as uvicorn
 from fastapi import FastAPI, Path
 from pydantic import BaseModel
-from fastapi import APIRouter
+from fastapi import APIRouter, Request,  HTTPException
 from datetime import datetime
-from handlers.items import router as items_router
+
+from starlette.responses import JSONResponse
+
+from app.handlers.items import router as items_router
 from app.db.database import async_session, engine
+from app.schemas.items import Error
 
 
 def set_events(app: FastAPI):
     @app.on_event("shutdown")
     async def startup_event():
         await engine.dispose()
+
+    @app.exception_handler(HTTPException)
+    async def exception(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=Error(code=exc.status_code, message=exc.detail).dict()
+        )
 
 
 def get_app():

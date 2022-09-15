@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import Column, DateTime, String, ForeignKey, Integer, Enum
 from sqlalchemy.orm import declarative_base, relationship
 from app.schemas import SystemItemType
@@ -10,7 +12,7 @@ class Items(Base):
 
     id = Column(String, primary_key=True)
     url = Column(String, nullable=True)
-    date = Column(DateTime, nullable=False)
+    date = Column(DateTime(timezone=datetime.timezone.utc), nullable=False)
     parentId = Column(String, ForeignKey("items.id", ondelete='CASCADE'), nullable=True)
     type = Column(Enum(SystemItemType), nullable=False)
     size = Column(Integer, nullable=True)
