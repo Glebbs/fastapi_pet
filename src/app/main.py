@@ -1,16 +1,11 @@
-from typing import Union
-from enum import Enum
-
 import uvicorn as uvicorn
-from fastapi import FastAPI, Path
-from pydantic import BaseModel
-from fastapi import APIRouter, Request,  HTTPException
-from datetime import datetime
+from fastapi import FastAPI
+from fastapi import Request, HTTPException
 
 from starlette.responses import JSONResponse
 
 from app.handlers.items import router as items_router
-from app.db.database import async_session, engine
+from app.db.database import engine
 from app.schemas.items import Error
 
 

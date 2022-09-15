@@ -1,12 +1,11 @@
 from collections import deque
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, update, select, insert
-from sqlalchemy.orm import joinedload, noload
-from starlette.responses import JSONResponse
+from sqlalchemy.orm import joinedload
 from dateutil import parser
-from app.schemas import SystemItemImportRequest, SystemItem, Error, SystemItemHistoryResponse, SystemItemType
-from datetime import datetime, timedelta
+from app.schemas import SystemItemImportRequest, SystemItem, SystemItemHistoryResponse
+from datetime import timedelta
 from app.db.database import get_session
 from app.db.models import Items
 from app.schemas.items import valdate
@@ -48,7 +47,8 @@ async def import_files(model: SystemItemImportRequest, session: AsyncSession = D
                                                                                       size=item.size if item.type.value == 'FILE' else s,
                                                                                       type=item.type,
                                                                                       parentId=item.parentId,
-                                                                                      date=parser.parse(model.updateDate)))
+                                                                                      date=parser.parse(
+                                                                                          model.updateDate)))
             i = await session.get(Items, item.id)
             if i.size:
                 s = i.size
@@ -110,8 +110,8 @@ async def updates(date: str, session: AsyncSession = Depends(get_session)):
     async with session:
         if not valdate(date):
             raise HTTPException(400, detail="Validation Failed")
-        query = select(Items).where(Items.date <= parser.parse(date), Items.date >= parser.parse(date) - timedelta(hours=24)) #Items.type is SystemItemType.FILE,
+        query = select(Items).where(Items.date <= parser.parse(date), Items.date >= parser.parse(date) - timedelta(
+            hours=24))  # Items.type is SystemItemType.FILE,
         res = await session.execute(query)
         res = res.scalars().all()
     return res
-
