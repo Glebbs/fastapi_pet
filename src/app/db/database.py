@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import asynccontextmanager
 
-SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5400/items_db"
+SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@postgres_db:5400/items_db"
 
 engine = create_async_engine(
         SQLALCHEMY_DATABASE_URL,
