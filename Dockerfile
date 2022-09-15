@@ -17,4 +17,4 @@ COPY ./src/ /src/
 #
 CMD ["python" ,"-m" ,"app.main"]
 
-EXPOSE 8080
+EXPOSE 80

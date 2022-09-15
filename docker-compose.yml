@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  postgres_db:
+    image: postgres
+    container_name: postgres_db
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data_back:/var/lib/postgresql/data
+    ports:
+      - "5400:5432"
+
+  app:
+    container_name: app
+    build: .
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOSTS=postgres_db:5400
+    depends_on:
+      - postgres_db
+
+volumes:
+  postgres_data_back:
+    driver: local
