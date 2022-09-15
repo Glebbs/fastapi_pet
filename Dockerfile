@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir --upgrade -r /requirements.txt
 COPY ./src/ /src/
 
 #
-CMD ["python" ,"-m" ,"app.main"]
+CMD ['alembic', 'upgrade', 'head', '&', "python" ,"-m" ,"app.main"]
 
 EXPOSE 80
