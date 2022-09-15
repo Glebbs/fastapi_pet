@@ -271,7 +271,7 @@ def test_all():
     test_import()
     test_nodes()
     test_updates()
-    test_history()
+    # test_history()
     test_delete()
 
 

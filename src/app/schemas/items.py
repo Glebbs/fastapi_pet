@@ -1,10 +1,23 @@
 from fastapi import Request
 from enum import Enum
+from dateutil import parser
 from fastapi.responses import JSONResponse
-
+import re
 from fastapi import HTTPException
 from pydantic import BaseModel, root_validator
 import datetime
+
+regex = r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$'
+match_iso8601 = re.compile(regex).match
+
+
+def valdate(s):
+    try:
+        if match_iso8601(s) is not None:
+            return True
+    except:
+        pass
+    return False
 
 
 class SystemItemType(str, Enum):
@@ -22,7 +35,7 @@ class SystemItem(BaseModel):
     children: list["SystemItem"] | None = None
 
     @root_validator
-    def replace_empty_list(cls, v):
+    def vall(cls, v):
         if v.get('type').value == "FILE":
             v['children'] = None
         v['date'] = str(v['date'].isoformat()) + 'Z'
@@ -41,20 +54,23 @@ class SystemItemImport(BaseModel):
     size: int | None = None
 
     @root_validator
-    def check_passwords_match(cls, v):
+    def checker(cls, v):
         if v.get('type').value == "FOLDER" and (v.get('url') is not None or v.get('size') is not None):
             raise HTTPException(400, detail="Validation Failed")
         if v.get('type').value == "FILE" and (v.get('size') <= 0 or len(v.get('url')) > 255):
             raise HTTPException(400, detail="Validation Failed")
-        # if 'Z' and 'T' not in v['date']:
-        #     print(v['date'])
-        #     raise HTTPException(400, detail="Validation Failed")
         return v
 
 
 class SystemItemImportRequest(BaseModel):
     items: list[SystemItemImport] | None = None
-    updateDate: datetime.datetime
+    updateDate: str  # | datetime.datetime
+
+    @root_validator
+    def checker(cls, v):
+        if not valdate(v.get('updateDate')):
+            raise HTTPException(400, detail="Validation Failed")
+        return v
 
 
 class SystemItemHistoryUnit(BaseModel):

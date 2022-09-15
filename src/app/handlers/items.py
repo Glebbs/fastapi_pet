@@ -4,10 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, update, select, insert
 from sqlalchemy.orm import joinedload, noload
 from starlette.responses import JSONResponse
+from dateutil import parser
 from app.schemas import SystemItemImportRequest, SystemItem, Error, SystemItemHistoryResponse, SystemItemType
 from datetime import datetime, timedelta
 from app.db.database import get_session
 from app.db.models import Items
+from app.schemas.items import valdate
 
 router = APIRouter(tags=['Базовые задачи'])
 
@@ -32,28 +34,28 @@ async def import_files(model: SystemItemImportRequest, session: AsyncSession = D
             old_item = await session.get(Items, item.id)
             if old_item is None:
                 await session.execute(insert(Items).values(**item.dict(exclude_none=True),
-                                                           date=model.updateDate))
+                                                           date=parser.parse(model.updateDate)))
             else:
                 s = old_item.size
                 while old_item.parentId:
                     parent = await session.get(Items, old_item.parentId)
                     await session.execute(
                         update(Items).where(Items.id == old_item.parentId).values(
-                            date=model.updateDate,
+                            date=parser.parse(model.updateDate),
                             size=parent.size - s if parent.size else 0))
                     old_item = parent
                 await session.execute(update(Items).where(Items.id == item.id).values(url=item.url,
                                                                                       size=item.size if item.type.value == 'FILE' else s,
                                                                                       type=item.type,
                                                                                       parentId=item.parentId,
-                                                                                      date=model.updateDate))
+                                                                                      date=parser.parse(model.updateDate)))
             i = await session.get(Items, item.id)
             if i.size:
                 s = i.size
                 while i.parentId:
                     parent = await session.get(Items, i.parentId)
                     await session.execute(
-                        update(Items).where(Items.id == i.parentId).values(date=model.updateDate,
+                        update(Items).where(Items.id == i.parentId).values(date=parser.parse(model.updateDate),
                                                                            size=parent.size + s if parent.size else s))
                     i = parent
 
@@ -61,16 +63,17 @@ async def import_files(model: SystemItemImportRequest, session: AsyncSession = D
 
 
 @router.delete('/delete/{id}', status_code=200)
-async def delete_files(date: datetime, id: str, session: AsyncSession = Depends(get_session)):
+async def delete_files(date: str, id: str, session: AsyncSession = Depends(get_session)):
     async with session:
-
+        if not valdate(date):
+            raise HTTPException(400, detail="Validation Failed")
         item = (await session.execute(select(Items).where(Items.id == id))).scalars().first()
         if item is None:
             raise HTTPException(404, detail="Item not found")
         s = item.size
         while item.parentId:
             t = (await session.execute(select(Items).where(Items.id == item.parentId))).scalars().first()
-            await session.execute(update(Items).where(Items.id == item.parentId).values(date=date,
+            await session.execute(update(Items).where(Items.id == item.parentId).values(date=parser.parse(date),
                                                                                         size=t.size - s if t.size else 0))
             item = t
 
@@ -103,13 +106,13 @@ async def get_files(id: str, session: AsyncSession = Depends(get_session)):
 
 
 @router.get('/updates', response_model=SystemItemHistoryResponse, status_code=200)
-async def updates(date: datetime, session: AsyncSession = Depends(get_session)):
+async def updates(date: str, session: AsyncSession = Depends(get_session)):
     async with session:
-        query = select(Items).where(Items.date <= date, Items.date >= date - timedelta(hours=24)) #Items.type is SystemItemType.FILE,
+        if not valdate(date):
+            raise HTTPException(400, detail="Validation Failed")
+        query = select(Items).where(Items.date <= parser.parse(date), Items.date >= parser.parse(date) - timedelta(hours=24)) #Items.type is SystemItemType.FILE,
         res = await session.execute(query)
         res = res.scalars().all()
-        # print(res)
-        # print(res[0].id)
     return res
 
 
